@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
+const DEFAULT_FEED_LIMIT = 20;
+
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -24,7 +26,7 @@ export async function GET(req: Request) {
       },
     });
 
-    const followedUserIds = followedUsers.map((follow: { followingId: string }) => follow.followingId);
+    const followedUserIds = followedUsers.map((follow) => follow.followingId);
 
     // Fetch posts from those followed users
     const feedPosts = await db.post.findMany({
@@ -34,7 +36,11 @@ export async function GET(req: Request) {
         },
         status: 'PUBLISHED', // Only show published posts in the feed
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        publishedAt: true,
         author: {
           select: {
             id: true,
@@ -47,7 +53,7 @@ export async function GET(req: Request) {
       orderBy: {
         publishedAt: 'desc',
       },
-      take: 20, // Paginate the results
+      take: DEFAULT_FEED_LIMIT, // Paginate the results
     });
 
     return NextResponse.json(feedPosts);

@@ -1,9 +1,9 @@
 
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { z } from 'zod';
-
-const prisma = new PrismaClient();
 
 const blogSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -13,7 +13,21 @@ const blogSchema = z.object({
 
 export async function GET() {
   try {
-    const blogs = await prisma.post.findMany();
+    const blogs = await db.post.findMany({
+      where: {
+        status: 'PUBLISHED',
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profileImage: true,
+          },
+        },
+        tags: true,
+      },
+    });
     return NextResponse.json(blogs);
   } catch (error) {
     console.error('Error fetching blogs:', error);
@@ -23,22 +37,21 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const currentUserId = session.user.id;
     const data = await request.json();
     const validatedData = blogSchema.parse(data);
 
-    // Get the user from the session
-    // Note: You would replace this with actual session management
-    const user = await prisma.user.findFirst();
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const newBlog = await prisma.post.create({
+    const newBlog = await db.post.create({
       data: {
         title: validatedData.title,
         content: validatedData.content,
-        authorId: user.id,
+        authorId: currentUserId,
         slug: validatedData.title.toLowerCase().replace(/\s+/g, '-'),
         tags: {
           connectOrCreate: validatedData.tags?.map((tag) => ({
