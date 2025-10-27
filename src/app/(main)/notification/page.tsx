@@ -1,6 +1,6 @@
-import { getNotifications, getUsers } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getNotifications, getUsers, getCurrentUser } from '@/lib/api';
+import { redirect } from 'next/navigation';
+import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Bell, Heart, MessageCircle, UserPlus } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -21,9 +21,12 @@ function NotificationIcon({ type }: { type: string }) {
 }
 
 export default async function NotificationPage() {
-  // In a real app, we'd get the current user ID from the session.
-  const currentUserId = '1';
-  const notifications = await getNotifications(currentUserId);
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    redirect('/api/auth/signin');
+  }
+
+  const notifications = await getNotifications();
   const users = await getUsers();
 
   const getNotificationText = (notification: (typeof notifications)[0]) => {

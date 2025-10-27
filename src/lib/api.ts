@@ -61,6 +61,9 @@ export const getCurrentUser = async () => {
 
 export const getNotifications = async () => {
     const response = await fetch(`${API_URL}/api/notifications`);
+    if (response.status === 401) {
+      return [];
+    }
     if (!response.ok) {
         throw new Error("Failed to fetch notifications");
     }
