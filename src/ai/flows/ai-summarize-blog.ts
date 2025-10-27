@@ -1,45 +1,20 @@
-'use server';
 
-/**
- * @fileOverview A blog post summarization AI agent.
- *
- * - aiSummarizeBlog - A function that summarizes a blog post.
- * - AiSummarizeBlogInput - The input type for the aiSummarizeBlog function.
- * - AiSummarizeBlogOutput - The return type for the aiSummarizeBlog function.
- */
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-const AiSummarizeBlogInputSchema = z.object({
-  blogContent: z.string().describe('The content of the blog post to summarize.'),
-});
-export type AiSummarizeBlogInput = z.infer<typeof AiSummarizeBlogInputSchema>;
-
-const AiSummarizeBlogOutputSchema = z.object({
-  summary: z.string().describe('A short summary of the blog post.'),
-});
-export type AiSummarizeBlogOutput = z.infer<typeof AiSummarizeBlogOutputSchema>;
-
-export async function aiSummarizeBlog(input: AiSummarizeBlogInput): Promise<AiSummarizeBlogOutput> {
-  return aiSummarizeBlogFlow(input);
+interface BlogSummarizationParams {
+  title: string;
+  content: string;
 }
 
-const prompt = ai.definePrompt({
-  name: 'aiSummarizeBlogPrompt',
-  input: {schema: AiSummarizeBlogInputSchema},
-  output: {schema: AiSummarizeBlogOutputSchema},
-  prompt: `You are an expert summarizer. Please provide a concise summary of the following blog post content:\n\n{{{blogContent}}}`, 
-});
+export async function aiSummarizeBlogFlow(params: BlogSummarizationParams) {
+  const { title, content } = params;
 
-const aiSummarizeBlogFlow = ai.defineFlow(
-  {
-    name: 'aiSummarizeBlogFlow',
-    inputSchema: AiSummarizeBlogInputSchema,
-    outputSchema: AiSummarizeBlogOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
-);
+  const summarizationPrompt = `Summarize the following blog post titled "${title}":\n\n${content}`;
+  const { text: summarizedContent } = await generateText({
+    model: google('models/gemini-1.5-pro-latest'),
+    prompt: summarizationPrompt,
+  });
+
+  return { summarizedContent };
+}

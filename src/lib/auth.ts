@@ -1,1 +1,51 @@
-\nimport { NextAuthOptions } from \'next-auth\';\nimport GoogleProvider from \'next-auth/providers/google\';\nimport { PrismaAdapter } from \'@next-auth/prisma-adapter\';\nimport { db } from \'@/lib/db\';\n\nexport const authOptions: NextAuthOptions = {\n  adapter: PrismaAdapter(db),\n  providers: [\n    GoogleProvider({\n      clientId: process.env.GOOGLE_CLIENT_ID!,\n      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,\n    }),\n  ],\n  session: {\n    strategy: \'jwt\',\n  },\n  callbacks: {\n    async session({ session, token }) {\n      if (token) {\n        session.user.id = token.id;\n        session.user.name = token.name;\n        session.user.email = token.email;\n        session.user.image = token.picture;\n      }\n\n      return session;\n    },\n    async jwt({\ token, user }) {\n      const dbUser = await db.user.findFirst({\n        where: {\n          email: token.email,\n        },\n      });\n\n      if (!dbUser) {\n        if (user) {\n          token.id = user?.id;\n        }\n        return token;\n      }\n\n      return {\n        id: dbUser.id,\n        name: dbUser.name,\n        email: dbUser.email,\n        picture: dbUser.profileImage,\n      };\n    },\n  },\n};\n
+
+import { NextAuthOptions } from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
+import { db } from '@/lib/db';
+
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(db),
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+  ],
+  session: {
+    strategy: 'jwt',
+  },
+  callbacks: {
+    async session({ session, token }) {
+      if (token && session.user) {
+        session.user.id = token.id as string;
+        session.user.name = token.name;
+        session.user.email = token.email;
+        session.user.image = token.picture;
+      }
+
+      return session;
+    },
+    async jwt({ token, user }) {
+      const dbUser = await db.user.findFirst({
+        where: {
+          email: token.email as string,
+        },
+      });
+
+      if (!dbUser) {
+        if (user) {
+          token.id = user?.id;
+        }
+        return token;
+      }
+
+      return {
+        id: dbUser.id,
+        name: dbUser.name,
+        email: dbUser.email,
+        picture: dbUser.profileImage,
+      };
+    },
+  },
+};
