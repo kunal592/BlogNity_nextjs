@@ -13,7 +13,7 @@ interface AdminPageClientProps {
   users: User[];
   posts: Post[];
   queries: ContactMessage[];
-  reportedComments: Comment[];
+  reportedComments: (Comment & { author: User; post: Post })[];
 }
 
 export default function AdminPageClient({
