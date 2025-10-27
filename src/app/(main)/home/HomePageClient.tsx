@@ -6,10 +6,10 @@ import ViewToggle from './ViewToggle';
 import BlogList from './BlogList';
 import { Button } from '@/components/ui/button';
 
-export default function HomePageClient({ initialPosts, totalPages: initialTotalPages }) {
+export default function HomePageClient({ initialPosts, totalPages: initialTotalPages, view: initialView }) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [viewMode, setViewMode] = useState(searchParams.get('view') || 'grid');
+  const [viewMode, setViewMode] = useState(initialView || 'grid');
 
   const currentPage = useMemo(() => parseInt(searchParams.get('page') || '1', 10), [searchParams]);
 

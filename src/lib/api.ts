@@ -26,3 +26,36 @@ export const toggleBookmark = async (postId: string, userId: string) => {
   }
   return response.json();
 };
+
+export const getPosts = async (filters = {}) => {
+    const query = new URLSearchParams(filters).toString();
+    const response = await fetch(`/api/blogs?${query}`);
+    if (!response.ok) {
+        throw new Error("Failed to fetch posts");
+    }
+    return response.json();
+};
+
+export const getUsers = async () => {
+    const response = await fetch("/api/users");
+    if (!response.ok) {
+        throw new Error("Failed to fetch users");
+    }
+    return response.json();
+};
+
+export const getCurrentUser = async () => {
+    const response = await fetch("/api/users/me");
+    if (!response.ok) {
+        throw new Error("Failed to fetch current user");
+    }
+    return response.json();
+};
+
+export const getNotifications = async () => {
+    const response = await fetch("/api/notifications");
+    if (!response.ok) {
+        throw new Error("Failed to fetch notifications");
+    }
+    return response.json();
+};
