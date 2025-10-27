@@ -66,6 +66,7 @@ model User {
   bio             String?
   profileImage    String?
   socialLinks     Json? // { twitter: "...", github: "...", linkedin: "..." }
+  subscription    String           @default("FREE")
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 

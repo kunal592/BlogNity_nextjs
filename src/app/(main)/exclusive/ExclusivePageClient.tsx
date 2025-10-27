@@ -1,56 +1,44 @@
 'use client';
 
-import type { Post, User } from '@/lib/types';
-import { useAuth } from '@/context/AuthContext';
-import BlogList from '@/app/(main)/home/BlogList';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Gem, Lock } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Post } from "@/lib/types";
 
 interface ExclusivePageClientProps {
-    initialPosts: (Post & { author?: User })[];
+    posts: Post[];
+    isSubscribed: boolean;
 }
 
-export default function ExclusivePageClient({ initialPosts }: ExclusivePageClientProps) {
-  const { user } = useAuth();
-  const { toast } = useToast();
-
-  const handleUnlock = () => {
-    toast({
-        title: "Feature Coming Soon!",
-        description: "The payment processing feature is not yet implemented."
-    })
-  }
-  
-  if (!user || !user.hasPaidAccess) {
+export default function ExclusivePageClient({ posts, isSubscribed }: ExclusivePageClientProps) {
     return (
-        <div className="container mx-auto">
-             <h1 className="text-3xl font-bold mb-6">Exclusive Content</h1>
-            <Card className="mt-8 text-center">
-                <CardHeader>
-                    <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
-                        <Gem className="h-8 w-8" />
-                    </div>
-                    <CardTitle className="mt-4 text-2xl">Unlock Exclusive Content</CardTitle>
-                </CardHeader>
-                <CardContent className="p-8 pt-0 flex flex-col items-center justify-center">
-                    <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                    Get unlimited access to our premium articles, deep-dives, and tutorials from top authors.
-                    </p>
-                    <Button size="lg" onClick={handleUnlock}>
-                        <Lock className="mr-2 h-4 w-4" />
-                        Unlock Now for $9.99/mo
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
-    )
-  }
+        <div>
+            {isSubscribed ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {/* Render full post cards for subscribed users */}
+                    {posts.map(post => (
+                        <div key={post.id} className="border p-4 rounded-lg">
+                            <h2 className="text-2xl font-bold mb-2">{post.title}</h2>
+                            <p>{post.content}</p>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold mb-4">Unlock Exclusive Content</h2>
+                    <p className="mb-8">Subscribe now to access all exclusive posts and support our work.</p>
+                    <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Subscribe Now
+                    </button>
 
-  return (
-    <div className="container mx-auto">
-        <BlogList posts={initialPosts} listTitle="Exclusive Content" />
-    </div>
-  );
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+                        {/* Render preview post cards for non-subscribed users */}
+                        {posts.map(post => (
+                            <div key={post.id} className="border p-4 rounded-lg">
+                                <h2 className="text-2xl font-bold mb-2">{post.title}</h2>
+                                <p>{post.content}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 }

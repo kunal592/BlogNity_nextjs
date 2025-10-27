@@ -1,100 +1,92 @@
-import { getUser, getPostsByAuthor, getPosts, getUsers } from '@/lib/api';
+
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
-import { Edit } from 'lucide-react';
-import BlogCard from '../home/BlogCard';
+import ProfilePageClient from './ProfilePageClient';
+import FollowingPageClient from './FollowingPageClient';
 
 export default async function ProfilePage() {
-  // In a real app, this might come from the URL, but here we get the logged-in user.
-  const currentUserId = '1';
-  const user = await getUser(currentUserId);
-  
-  if (!user) {
-    return <div>User not found</div>;
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    return <div>Please log in to view your profile.</div>;
   }
 
-  const userPosts = await getPostsByAuthor(user.id);
-  const allPosts = await getPosts();
-  const allUsers = await getUsers();
+  const user = await db.user.findUnique({
+    where: {
+      id: session.user.id,
+    },
+    include: {
+      posts: {
+        orderBy: {
+          createdAt: 'desc',
+        },
+      },
+      bookmarkedPosts: {
+        orderBy: {
+          createdAt: 'desc',
+        },
+      },
+      following: {
+        include: {
+          following: true,
+        },
+      },
+    },
+  });
 
-  const bookmarkedPosts = allPosts.filter(post => user.bookmarkedPosts.includes(post.id))
-    .map(post => ({
-      ...post,
-      author: allUsers.find(u => u.id === post.authorId)
-    }));
-
-  const followingUsers = allUsers.filter(u => user.followingUsers.includes(u.id));
+  if (!user) {
+    return <div>User not found.</div>;
+  }
 
   return (
-    <div className="container mx-auto">
-      <Card className="mb-8">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row items-start gap-6">
-            <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-background shadow-md">
-              <AvatarImage src={user.avatarUrl} alt={user.name} />
-              <AvatarFallback className="text-4xl">{user.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="flex justify-between items-start">
-                <h1 className="text-3xl font-bold">{user.name}</h1>
-                <Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit Profile</Button>
-              </div>
-              <p className="text-muted-foreground">@{user.username}</p>
-              <p className="mt-4">{user.bio}</p>
-              <div className="flex gap-6 mt-4 text-sm">
-                <div><span className="font-semibold">{userPosts.length}</span> Posts</div>
-                <div><span className="font-semibold">{user.followers}</span> Followers</div>
-                <div><span className="font-semibold">{user.following}</span> Following</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className='container mx-auto px-4 py-8'>
+      <div className='flex items-center space-x-4 mb-8'>
+        <Avatar className='w-24 h-24'>
+          <AvatarImage src={user.image || 'https://github.com/shadcn.png'} />
+          <AvatarFallback>{user.name?.[0]}</AvatarFallback>
+        </Avatar>
+        <div>
+          <h1 className='text-4xl font-bold'>{user.name}</h1>
+          <p className='text-muted-foreground'>{user.email}</p>
+        </div>
+      </div>
 
-      <Tabs defaultValue="blogs">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="blogs">My Blogs</TabsTrigger>
-          <TabsTrigger value="bookmarked">Bookmarked</TabsTrigger>
-          <TabsTrigger value="following">Following</TabsTrigger>
-        </TabsList>
-        <TabsContent value="blogs" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {userPosts.map(post => (
-              <BlogCard key={post.id} post={post} author={user} />
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="bookmarked" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {bookmarkedPosts.map(post => (
-              <BlogCard key={post.id} post={post} author={post.author} />
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="following" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {followingUsers.map(followedUser => (
-                    <Card key={followedUser.id}>
-                        <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <Avatar>
-                                    <AvatarImage src={followedUser.avatarUrl} alt={followedUser.name} />
-                                    <AvatarFallback>{followedUser.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <p className="font-semibold">{followedUser.name}</p>
-                                    <p className="text-sm text-muted-foreground">@{followedUser.username}</p>
-                                </div>
-                            </div>
-                            <Button variant="secondary" size="sm">Unfollow</Button>
-                        </CardContent>
-                    </Card>
-                ))}
+      <ProfilePageClient user={user} />
+
+      <div className="mt-8">
+        <h2 className='text-2xl font-bold mb-4'>My Blogs</h2>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
+          {user.posts.map((post) => (
+            <div key={post.id} className='border p-4 rounded-lg'>
+              <h3 className='text-xl font-bold mb-2'>{post.title}</h3>
+              <p className='text-muted-foreground'>
+                {new Date(post.createdAt).toLocaleDateString()}
+              </p>
             </div>
-        </TabsContent>
-      </Tabs>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h2 className='text-2xl font-bold mb-4'>Bookmarked</h2>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
+          {user.bookmarkedPosts.map((post) => (
+            <div key={post.id} className='border p-4 rounded-lg'>
+              <h3 className='text-xl font-bold mb-2'>{post.title}</h3>
+              <p className='text-muted-foreground'>
+                {new Date(post.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h2 className='text-2xl font-bold mb-4'>Following</h2>
+        <FollowingPageClient following={user.following} userId={user.id} />
+      </div>
     </div>
   );
 }

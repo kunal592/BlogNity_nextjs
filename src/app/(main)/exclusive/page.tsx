@@ -1,18 +1,55 @@
-import { getPosts, getUsers } from '@/lib/api';
-import ExclusivePageClient from './ExclusivePageClient';
+
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import ExclusivePageClient from "./ExclusivePageClient";
+
+async function getExclusivePosts(isSubscribed: boolean) {
+    const exclusivePosts = await db.post.findMany({
+        where: {
+            exclusive: true,
+            status: 'PUBLISHED',
+        },
+        include: {
+            author: {
+                select: {
+                    name: true,
+                    profileImage: true,
+                },
+            },
+            tags: {
+                select: {
+                    tag: {
+                        select: {
+                            id: true,
+                            name: true,
+                            slug: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (isSubscribed) {
+        return exclusivePosts;
+    } else {
+        return exclusivePosts.map(post => ({
+            ...post,
+            content: post.content.substring(0, 200) + '...',
+        }));
+    }
+}
 
 export default async function ExclusivePage() {
-  const allPosts = await getPosts();
-  const allUsers = await getUsers();
+    const session = await getServerSession(authOptions);
+    const isSubscribed = session?.user?.subscription === "PREMIUM";
+    const posts = await getExclusivePosts(isSubscribed);
 
-  const exclusivePosts = allPosts.filter(post => post.isExclusive);
-
-  const exclusivePostsWithAuthors = exclusivePosts.map(post => {
-    const author = allUsers.find(u => u.id === post.authorId);
-    return { ...post, author };
-  });
-
-  return (
-    <ExclusivePageClient initialPosts={exclusivePostsWithAuthors} />
-  );
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <h1 className="text-4xl font-bold mb-8">Exclusive Content</h1>
+            <ExclusivePageClient posts={posts} isSubscribed={isSubscribed} />
+        </div>
+    );
 }

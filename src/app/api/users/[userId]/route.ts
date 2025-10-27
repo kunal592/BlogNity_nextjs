@@ -13,6 +13,12 @@ export async function GET(
       where: {
         id: params.userId,
       },
+      include: {
+        posts: true,
+        followers: true,
+        following: true,
+        bookmarkedPosts: true,
+      },
     });
 
     return NextResponse.json(user);
@@ -34,7 +40,7 @@ export async function PATCH(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const user = await db.user.update({
+    const updatedUser = await db.user.update({
       where: {
         id: params.userId,
       },
@@ -43,7 +49,7 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json(user);
+    return NextResponse.json(updatedUser);
   } catch (error) {
     console.error('[USERS_USERID_PATCH]', error);
     return new NextResponse('Internal Error', { status: 500 });
@@ -67,7 +73,7 @@ export async function DELETE(
       },
     });
 
-    return new NextResponse('User deleted', { status: 200 });
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('[USERS_USERID_DELETE]', error);
     return new NextResponse('Internal Error', { status: 500 });

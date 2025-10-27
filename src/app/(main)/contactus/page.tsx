@@ -16,7 +16,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { sendContactMessage } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
@@ -35,11 +34,22 @@ export default function ContactUsPage() {
   const {formState: {isSubmitting}} = form;
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const { success } = await sendContactMessage(values);
-    if (success) {
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
       toast({ title: 'Message sent successfully!' });
       form.reset();
-    } else {
+    } catch (error) {
       toast({ title: 'Failed to send message.', variant: 'destructive' });
     }
   }

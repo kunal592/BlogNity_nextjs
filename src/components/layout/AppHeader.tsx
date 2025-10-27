@@ -4,6 +4,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { UserNav } from '@/components/shared/UserNav';
+import NotificationsPopover from '@/components/notifications/NotificationsPopover';
 
 export default function AppHeader() {
   return (
@@ -19,7 +20,10 @@ export default function AppHeader() {
           className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
         />
       </div>
-      <UserNav />
+      <div className="flex items-center gap-4">
+        <NotificationsPopover />
+        <UserNav />
+      </div>
     </header>
   );
 }

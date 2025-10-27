@@ -1,19 +1,16 @@
+
 import { getPosts, getUsers } from '@/lib/api';
-import ViewToggle from './ViewToggle';
-import BlogList from './BlogList';
+import HomePageClient from './HomePageClient';
 
-export default async function HomePage() {
-  const posts = await getPosts();
-  const users = await getUsers();
+export default async function HomePage({ searchParams }) {
+  const page = parseInt(searchParams.page || '1', 10);
+  const view = searchParams.view || 'grid';
 
-  const postsWithAuthors = posts.map(post => {
-    const author = users.find(user => user.id === post.authorId);
-    return { ...post, author };
-  });
+  const { data: posts, pagination } = await getPosts(page, 10);
 
   return (
     <div className="container mx-auto">
-      <BlogList posts={postsWithAuthors} />
+      <HomePageClient initialPosts={posts} totalPages={pagination.totalPages} />
     </div>
   );
 }

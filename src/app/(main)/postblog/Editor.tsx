@@ -6,10 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/hooks/use-toast';
-import { createPost } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { aiSEOBlog } from '@/ai/flows/ai-seo-blog';
 import { Loader2, Wand2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -34,16 +32,28 @@ export default function Editor() {
       return;
     }
     setIsSubmitting(true);
+
+    const endpoint = status === 'draft' ? '/api/blogs/draft' : '/api/blogs/publish';
+
     try {
-      await createPost({
-        title,
-        content,
-        authorId: user.id,
-        status,
-        tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-        excerpt: content.substring(0, 150) + '...',
-        thumbnailUrl: `https://picsum.photos/seed/${Date.now()}/600/400`,
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          content,
+          tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+          excerpt: content.substring(0, 150) + '...',
+          thumbnailUrl: `https://picsum.photos/seed/${Date.now()}/600/400`,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to save post');
+      }
+
       toast({ title: `Post ${status === 'draft' ? 'saved as draft' : 'published'}!` });
       router.push('/dashboard');
     } catch (error) {
@@ -56,15 +66,28 @@ export default function Editor() {
   const handleSeoOptimize = async () => {
     setIsOptimizing(true);
     try {
-      const result = await aiSEOBlog({ title, content, keywords: tags });
+      const response = await fetch('/api/ai/generate-blog', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          prompt: `Optimize the following blog post for SEO. Title: ${title}. Content: ${content}. Keywords: ${tags}.`
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to optimize post');
+      }
+
+      const result = await response.json();
+
       setTitle(result.optimizedTitle);
       setContent(result.optimizedContent);
       toast({ title: 'AI SEO Optimization Applied!', description: `Meta Description: ${result.metaDescription}` });
     } catch (error) {
       console.error(error);
-      toast({ title: 'AI Optimization failed.', description: 'Using mock data instead.', variant: 'destructive' });
-      setTitle(title + ' (SEO Optimized)');
-      setContent(content + '\n\n*This content has been optimized for SEO by our AI.*');
+      toast({ title: 'AI Optimization failed.', variant: 'destructive' });
     } finally {
       setIsOptimizing(false);
     }

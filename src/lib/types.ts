@@ -40,16 +40,20 @@ export type Comment = {
   createdAt: string;
 };
 
-export type NotificationType = 'new_follower' | 'comment' | 'like' | 'mention';
-
 export type Notification = {
   id: string;
-  userId: string;
-  type: NotificationType;
-  fromUserId: string;
-  postId?: string;
-  read: boolean;
+  recipientId: string;
+  actorId: string;
+  type: 'LIKE' | 'COMMENT' | 'FOLLOW';
+  entityType: 'POST' | 'COMMENT' | 'USER';
+  entityId: string;
+  isRead: boolean;
   createdAt: string;
+  actor: {
+    id: string;
+    name: string;
+    profileImage: string;
+  };
 };
 
 export type NavItem = {

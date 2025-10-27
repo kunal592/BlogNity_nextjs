@@ -1,60 +1,93 @@
+
 'use client';
 
-import { Card } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import type { User } from '@/lib/types';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Ban, Eye, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
+import { User } from '@prisma/client';
+import { updateUser, deleteUser } from './actions';
 
-export default function AdminUserTable({ users }: { users: User[] }) {
-    const { toast } = useToast();
+interface AdminUserTableProps {
+  users: User[];
+}
 
-    const handleAction = (action: string, userName: string) => {
-        toast({ title: `${action} user: ${userName}`, description: 'This is a mock action.' });
-    };
+export default function AdminUserTable({ users }: AdminUserTableProps) {
+  const { toast } = useToast();
 
-    return (
-        <Card>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Followers</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {users.map(user => (
-                        <TableRow key={user.id}>
-                            <TableCell>
-                                <div className="flex items-center gap-3">
-                                    <Avatar>
-                                        <AvatarImage src={user.avatarUrl} alt={user.name} />
-                                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <p className="font-medium">{user.name}</p>
-                                        <p className="text-sm text-muted-foreground">@{user.username}</p>
-                                    </div>
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                <Badge variant={user.role === 'ADMIN' ? 'destructive' : 'secondary'}>{user.role}</Badge>
-                            </TableCell>
-                            <TableCell>{user.followers}</TableCell>
-                            <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => handleAction('View posts for', user.name)}><Eye className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleAction('Ban', user.name)}><Ban className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleAction('Delete', user.name)}><Trash2 className="h-4 w-4" /></Button>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </Card>
-    );
+  const handleRoleChange = async (userId: string, isAdmin: boolean) => {
+    const result = await updateUser(userId, { isAdmin });
+    if (result.success) {
+      toast({ title: 'User role updated successfully' });
+    } else {
+      toast({ title: 'Failed to update user role', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+
+    const result = await deleteUser(userId);
+    if (result.success) {
+      toast({ title: 'User deleted successfully' });
+    } else {
+      toast({ title: 'Failed to delete user', variant: 'destructive' });
+    }
+  };
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Role</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {users.map((user) => (
+          <TableRow key={user.id}>
+            <TableCell>{user.name}</TableCell>
+            <TableCell>{user.email}</TableCell>
+            <TableCell>{user.isAdmin ? 'Admin' : 'User'}</TableCell>
+            <TableCell>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => handleRoleChange(user.id, !user.isAdmin)}
+                  >
+                    {user.isAdmin ? 'Make User' : 'Make Admin'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDeleteUser(user.id)}>
+                    Delete User
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
 }

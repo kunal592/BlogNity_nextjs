@@ -1,9 +1,9 @@
 
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { z } from 'zod';
-
-const prisma = new PrismaClient();
 
 const blogSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -13,12 +13,33 @@ const blogSchema = z.object({
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    const blog = await prisma.post.findUnique({
+    const session = await getServerSession(authOptions);
+    // @ts-ignore
+    const userIsAdmin = session?.user?.role === 'ADMIN';
+
+    const blog = await db.post.findUnique({
       where: { id: params.id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profileImage: true,
+          },
+        },
+        tags: true,
+      },
     });
 
     if (!blog) {
       return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
+    }
+
+    if (blog.exclusive && !userIsAdmin) {
+      return NextResponse.json({
+        ...blog,
+        content: blog.content.substring(0, 200) + '...', // Create a preview
+      });
     }
 
     return NextResponse.json(blog);
@@ -33,7 +54,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const data = await request.json();
     const validatedData = blogSchema.parse(data);
 
-    const updatedBlog = await prisma.post.update({
+    const updatedBlog = await db.post.update({
       where: { id: params.id },
       data: {
         title: validatedData.title,
@@ -61,7 +82,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    await prisma.post.delete({
+    await db.post.delete({
       where: { id: params.id },
     });
 
