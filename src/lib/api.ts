@@ -50,6 +50,9 @@ export const getUsers = async () => {
 
 export const getCurrentUser = async () => {
     const response = await fetch(`${API_URL}/api/users/me`);
+    if (response.status === 401) {
+      return null;
+    }
     if (!response.ok) {
         throw new Error("Failed to fetch current user");
     }
