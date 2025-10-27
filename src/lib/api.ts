@@ -1,6 +1,8 @@
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
 export const toggleLike = async (postId: string, userId: string) => {
-  const response = await fetch('/api/likes', {
+  const response = await fetch(`${API_URL}/api/likes`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -14,7 +16,7 @@ export const toggleLike = async (postId: string, userId: string) => {
 };
 
 export const toggleBookmark = async (postId: string, userId: string) => {
-  const response = await fetch('/api/bookmark', {
+  const response = await fetch(`${API_URL}/api/bookmark`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -29,7 +31,7 @@ export const toggleBookmark = async (postId: string, userId: string) => {
 
 export const getPosts = async (filters = {}) => {
     const query = new URLSearchParams(filters).toString();
-    const response = await fetch(`/api/blogs?${query}`);
+    const response = await fetch(`${API_URL}/api/blogs?${query}`);
     if (!response.ok) {
         throw new Error("Failed to fetch posts");
     }
@@ -37,7 +39,7 @@ export const getPosts = async (filters = {}) => {
 };
 
 export const getUsers = async () => {
-    const response = await fetch("/api/users");
+    const response = await fetch(`${API_URL}/api/users`);
     if (!response.ok) {
         throw new Error("Failed to fetch users");
     }
@@ -45,7 +47,7 @@ export const getUsers = async () => {
 };
 
 export const getCurrentUser = async () => {
-    const response = await fetch("/api/users/me");
+    const response = await fetch(`${API_URL}/api/users/me`);
     if (!response.ok) {
         throw new Error("Failed to fetch current user");
     }
@@ -53,7 +55,7 @@ export const getCurrentUser = async () => {
 };
 
 export const getNotifications = async () => {
-    const response = await fetch("/api/notifications");
+    const response = await fetch(`${API_URL}/api/notifications`);
     if (!response.ok) {
         throw new Error("Failed to fetch notifications");
     }
