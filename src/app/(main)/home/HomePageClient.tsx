@@ -26,7 +26,7 @@ export default function HomePageClient({ initialPosts, totalPages: initialTotalP
     <div>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Latest Posts</h1>
-        <ViewToggle viewMode={viewMode} setViewMode={handleViewChange} />
+        <ViewToggle view={viewMode} onViewChange={handleViewChange} />
       </div>
       <BlogList posts={initialPosts} viewMode={viewMode} />
       <div className="flex justify-center items-center mt-8">
