@@ -1,5 +1,7 @@
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+import { getAbsoluteApiUrl } from './utils';
+
+const API_URL = getAbsoluteApiUrl();
 
 export const toggleLike = async (postId: string, userId: string) => {
   const response = await fetch(`${API_URL}/api/likes`, {
@@ -55,7 +57,7 @@ export const getCurrentUser = async () => {
 };
 
 export const getNotifications = async () => {
-    const response = await fetch(`${API_URL}/api/notification`);
+    const response = await fetch(`${API_URL}/api/notifications`);
     if (!response.ok) {
         throw new Error("Failed to fetch notifications");
     }
