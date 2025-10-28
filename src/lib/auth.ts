@@ -43,7 +43,7 @@ export const authOptions: AuthOptions = {
         // attach role (ts may require casting)
         (session.user as any).role = (token as any).role ?? "USER";
       }
-d     return session;
+      return session;
     },
   },
 
