@@ -12,14 +12,23 @@ import { Loader2, Wand2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { handleSeoOptimize, handleSummarize } from '@/lib/api';
 
-export default function Editor() {
+interface EditorProps {
+  post?: {
+    id: string;
+    title: string;
+    content: string;
+    tags: { name: string }[];
+  };
+}
+
+export default function Editor({ post }: EditorProps) {
   const { theme } = useTheme();
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('**Hello world!!!**');
-  const [tags, setTags] = useState('');
+  const [title, setTitle] = useState(post?.title || '');
+  const [content, setContent] = useState(post?.content || '**Hello world!!!**');
+  const [tags, setTags] = useState(post?.tags.map(t => t.name).join(', ') || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
@@ -35,20 +44,20 @@ export default function Editor() {
     }
     setIsSubmitting(true);
 
-    const endpoint = status === 'draft' ? '/api/blogs/draft' : '/api/blogs/publish';
-
     try {
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/blogs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          postId: post?.id,
           title,
           content,
           tags: tags.split(',').map(t => t.trim()).filter(Boolean),
           excerpt: content.substring(0, 150) + '...',
           thumbnailUrl: `https://picsum.photos/seed/${Date.now()}/600/400`,
+          status,
         }),
       });
 
@@ -56,7 +65,7 @@ export default function Editor() {
         throw new Error('Failed to save post');
       }
 
-      toast({ title: `Post ${status === 'draft' ? 'saved as draft' : 'published'}! `});
+      toast({ title: `Post ${status === 'draft' ? 'saved as draft' : 'published'}!` });
       router.push('/dashboard');
     } catch (error) {
       toast({ title: 'Failed to save post.', variant: 'destructive' });
@@ -144,7 +153,7 @@ export default function Editor() {
           disabled={isSubmitting}
         >
           {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Publish
+          {post ? 'Update' : 'Publish'}
         </Button>
       </div>
     </div>
