@@ -69,3 +69,47 @@ export const getNotifications = async () => {
     }
     return response.json();
 };
+
+export const handleSeoOptimize = async (title: string, content: string, tags: string) => {
+  const response = await fetch('/api/ai/generate-blog', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      prompt: `Optimize the following blog post for SEO. Title: ${title}. Content: ${content}. Keywords: ${tags}.`,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to optimize post');
+  }
+
+  return response.json();
+};
+
+export const handleSummarize = async (content: string) => {
+    const response = await fetch(`${API_URL}/api/ai/summarize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to summarize content");
+    }
+    return response.json();
+};
+
+export const handleGenerate = async (prompt: string) => {
+    const response = await fetch(`${API_URL}/api/ai/generate-blog`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to generate blog content");
+    }
+    return response.json();
+};

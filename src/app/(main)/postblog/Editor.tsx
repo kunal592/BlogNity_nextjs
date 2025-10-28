@@ -10,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Loader2, Wand2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { handleSeoOptimize, handleSummarize } from '@/lib/api';
 
 export default function Editor() {
   const { theme } = useTheme();
@@ -21,6 +22,7 @@ export default function Editor() {
   const [tags, setTags] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
 
   const handleSave = async (status: 'draft' | 'published') => {
     if (!user) {
@@ -54,7 +56,7 @@ export default function Editor() {
         throw new Error('Failed to save post');
       }
 
-      toast({ title: `Post ${status === 'draft' ? 'saved as draft' : 'published'}!` });
+      toast({ title: `Post ${status === 'draft' ? 'saved as draft' : 'published'}! `});
       router.push('/dashboard');
     } catch (error) {
       toast({ title: 'Failed to save post.', variant: 'destructive' });
@@ -62,26 +64,11 @@ export default function Editor() {
       setIsSubmitting(false);
     }
   };
-  
-  const handleSeoOptimize = async () => {
+
+  const onSeoOptimize = async () => {
     setIsOptimizing(true);
     try {
-      const response = await fetch('/api/ai/generate-blog', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          prompt: `Optimize the following blog post for SEO. Title: ${title}. Content: ${content}. Keywords: ${tags}.`
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to optimize post');
-      }
-
-      const result = await response.json();
-
+      const result = await handleSeoOptimize(title, content, tags);
       setTitle(result.optimizedTitle);
       setContent(result.optimizedContent);
       toast({ title: 'AI SEO Optimization Applied!', description: `Meta Description: ${result.metaDescription}` });
@@ -90,6 +77,19 @@ export default function Editor() {
       toast({ title: 'AI Optimization failed.', variant: 'destructive' });
     } finally {
       setIsOptimizing(false);
+    }
+  };
+
+  const onSummarize = async () => {
+    setIsSummarizing(true);
+    try {
+      const result = await handleSummarize(content);
+      toast({ title: 'AI Summary Generated!', description: result.summary });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'AI Summarization failed.', variant: 'destructive' });
+    } finally {
+      setIsSummarizing(false);
     }
   };
 
@@ -117,11 +117,19 @@ export default function Editor() {
       <div className="flex justify-end gap-4">
         <Button 
           variant="outline" 
-          onClick={handleSeoOptimize}
+          onClick={onSeoOptimize}
           disabled={isOptimizing || isSubmitting}
         >
           {isOptimizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
           AI SEO Optimize
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={onSummarize}
+          disabled={isSummarizing || isSubmitting}
+        >
+          {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Summarize
         </Button>
         <Button 
           variant="secondary" 

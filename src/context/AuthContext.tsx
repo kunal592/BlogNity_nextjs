@@ -1,32 +1,24 @@
+
 'use client';
 
-import { Session } from 'next-auth';
-import { useSession, SessionProvider } from 'next-auth/react';
-import React, { createContext, useContext, ReactNode } from 'react';
+import { SessionProvider, useSession } from 'next-auth/react';
+import { createContext, useContext, ReactNode } from 'react';
 
 interface AuthContextType {
-  user: Session['user'] | null;
+  user: any; // Replace 'any' with a more specific user type if you have one
   status: 'loading' | 'authenticated' | 'unauthenticated';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function AuthProviderContent({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
-  const user = session?.user || null;
+  const user = session?.user;
 
   return (
     <AuthContext.Provider value={{ user, status }}>
       {children}
     </AuthContext.Provider>
-  );
-}
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  return (
-    <SessionProvider>
-      <AuthProviderContent>{children}</AuthProviderContent>
-    </SessionProvider>
   );
 }
 
@@ -36,4 +28,12 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+export default function App({ children }: { children: ReactNode }) {
+  return (
+    <SessionProvider>
+      <AuthProvider>{children}</AuthProvider>
+    </SessionProvider>
+  );
 }
