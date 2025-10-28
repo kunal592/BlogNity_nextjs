@@ -1,35 +1,49 @@
 
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { defineFlow } from '@genkit-ai/flow';
+import { generate } from '@genkit-ai/ai';
+import * as z from 'zod';
 
-interface BlogGenerationParams {
-  topic: string;
-  keywords: string[];
-}
 
-export async function aiSEOBlogFlow(params: BlogGenerationParams) {
-  const { topic, keywords } = params;
+export const aiSEOBlogFlow = defineFlow(
+  {
+    name: 'aiSEOBlogFlow',
+    inputSchema: z.object({
+      topic: z.string(),
+      keywords: z.array(z.string()),
+    }),
+    outputSchema: z.object({
+      optimizedTitle: z.string(),
+      optimizedContent: z.string(),
+      metaDescription: z.string(),
+    }),
+  },
+  async (params) => {
+    const { topic, keywords } = params;
 
-  // 1. Generate SEO-optimized title
-  const titleGenerationPrompt = `Generate an SEO-optimized title for a blog post about "${topic}" with the following keywords: ${keywords.join(', ')}.`;
-  const { text: optimizedTitle } = await generateText({
-    model: google('models/gemini-1.5-pro-latest'),
-    prompt: titleGenerationPrompt,
-  });
+    // 1. Generate SEO-optimized title
+    const titleGenerationPrompt = `Generate an SEO-optimized title for a blog post about \"${topic}\" with the following keywords: ${keywords.join(', ')}.`;
+    const titleResponse = await generate({
+      prompt: titleGenerationPrompt,
+      model: 'googleai/gemini-1.5-flash',
+    });
+    const optimizedTitle = titleResponse.text();
 
-  // 2. Generate blog content
-  const contentGenerationPrompt = `Write a comprehensive blog post titled "${optimizedTitle}" about "${topic}". Incorporate the following keywords naturally: ${keywords.join(', ')}.`;
-  const { text: optimizedContent } = await generateText({
-    model: google('models/gemini-1.5-pro-latest'),
-    prompt: contentGenerationPrompt,
-  });
+    // 2. Generate blog content
+    const contentGenerationPrompt = `Write a comprehensive blog post titled \"${optimizedTitle}\" about \"${topic}\". Incorporate the following keywords naturally: ${keywords.join(', ')}.`;
+    const contentResponse = await generate({
+      prompt: contentGenerationPrompt,
+      model: 'googleai/gemini-1.5-flash',
+    });
+    const optimizedContent = contentResponse.text();
 
-  // 3. Generate meta description
-  const metaDescriptionPrompt = `Generate a meta description (under 160 characters) for a blog post titled "${optimizedTitle}" about "${topic}".`;
-  const { text: metaDescription } = await generateText({
-    model: google('models/gemini-1.5-pro-latest'),
-    prompt: metaDescriptionPrompt,
-  });
+    // 3. Generate meta description
+    const metaDescriptionPrompt = `Generate a meta description (under 160 characters) for a blog post titled \"${optimizedTitle}\" about \"${topic}\".`;
+    const metaDescriptionResponse = await generate({
+      prompt: metaDescriptionPrompt,
+      model: 'googleai/gemini-1.5-flash',
+    });
+    const metaDescription = metaDescriptionResponse.text();
 
-  return { optimizedTitle, optimizedContent, metaDescription };
-}
+    return { optimizedTitle, optimizedContent, metaDescription };
+  },
+);

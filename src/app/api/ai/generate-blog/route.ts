@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server';
+import { run } from '@genkit-ai/flow';
 import { aiSEOBlogFlow } from '@/ai/flows/ai-seo-blog';
 import { z } from 'zod';
 
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
     const data = await req.json();
     const validatedData = generateBlogSchema.parse(data);
 
-    const { optimizedTitle, optimizedContent, metaDescription } = await aiSEOBlogFlow(validatedData);
+    const { optimizedTitle, optimizedContent, metaDescription } = await run(aiSEOBlogFlow, validatedData);
 
     return NextResponse.json({ optimizedTitle, optimizedContent, metaDescription });
 

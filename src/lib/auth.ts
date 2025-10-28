@@ -26,6 +26,12 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = (user as any).id;
         token.role = (user as any).role ?? "USER";
+        const userFromDb = await db.user.findUnique({
+          where: { id: user.id },
+        });
+        if (userFromDb) {
+          token.role = userFromDb.isAdmin ? "ADMIN" : "USER";
+        }
       }
       return token;
     },
@@ -37,7 +43,7 @@ export const authOptions: AuthOptions = {
         // attach role (ts may require casting)
         (session.user as any).role = (token as any).role ?? "USER";
       }
-      return session;
+d     return session;
     },
   },
 

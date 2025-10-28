@@ -18,16 +18,21 @@ import {
   Settings,
   User as UserIcon,
 } from 'lucide-react';
+import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 
 export function UserNav() {
-  const { user, logout } = useAuth();
+  const { user, status } = useAuth();
+
+  if (status === 'loading') {
+    return <div>Loading...</div>; // Or a skeleton loader
+  }
 
   if (!user) {
     return null;
   }
 
-  const userInitials = user.name
+  const userInitials = (user.name || '')
     .split(' ')
     .map((n) => n[0])
     .join('');
@@ -37,7 +42,7 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={user.avatarUrl} alt={user.name} />
+            {user.image && <AvatarImage src={user.image} alt={user.name || ''} />}
             <AvatarFallback>{userInitials}</AvatarFallback>
           </Avatar>
         </Button>
@@ -47,7 +52,7 @@ export function UserNav() {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.name}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              @{user.username}
+              {user.email}
             </p>
           </div>
         </DropdownMenuLabel>
@@ -73,7 +78,7 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout}>
+        <DropdownMenuItem onClick={() => signOut()}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
