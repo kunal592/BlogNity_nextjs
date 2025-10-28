@@ -1,7 +1,8 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuth } from '@/lib/auth'; // Assuming you have a helper for session
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
 
 const postSchema = z.object({
@@ -14,9 +15,38 @@ const postSchema = z.object({
   postId: z.string().optional(), // For updates
 });
 
+export async function GET(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") || "1", 10);
+    const limit = parseInt(url.searchParams.get("limit") || "10", 10);
+    const skip = (page - 1) * limit;
+
+    const posts = await db.post.findMany({
+      skip,
+      take: limit,
+      include: {
+        author: true,
+        tags: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const totalPosts = await db.post.count();
+    const totalPages = Math.ceil(totalPosts / limit);
+
+    return NextResponse.json({ posts, totalPages });
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    const session = await getAuth();
+    const session = await getServerSession(authOptions);
     if (!session?.user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
