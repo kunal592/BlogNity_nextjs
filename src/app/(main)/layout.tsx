@@ -1,13 +1,20 @@
-import AppHeader from '@/components/layout/AppHeader';
-import AppSidebar from '@/components/layout/AppSidebar';
-import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
-import { MotionDiv } from '@/components/shared/MotionDiv';
-import { AuthProvider } from '@/context/AuthContext';
+// src/app/(main)/layout.tsx
+import AppHeader from "@/components/layout/AppHeader";
+import AppSidebar from "@/components/layout/AppSidebar";
+import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
+import { MotionDiv } from "@/components/shared/MotionDiv";
+import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "react-hot-toast";
+import AuthListener from "@/components/AuthListener";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <SidebarProvider>
+        {/* Toast + listener */}
+        <Toaster position="top-right" />
+        <AuthListener />
+
         <div className="flex h-screen w-full">
           <Sidebar>
             <AppSidebar />

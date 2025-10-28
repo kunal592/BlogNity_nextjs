@@ -1,7 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// --- Datasources and Generator ---
+// -------------------------------------------------------------------
+// 📘 Prisma Schema for BlogNity
+// Includes NextAuth models + Blog + Notifications
+// -------------------------------------------------------------------
 
 datasource db {
   provider = "postgresql"
@@ -13,7 +13,9 @@ generator client {
   previewFeatures = ["postgresqlExtensions"]
 }
 
-// --- ENUMS ---
+// -------------------------------------------------------------------
+// 🔹 ENUMS
+// -------------------------------------------------------------------
 
 enum Role {
   USER
@@ -53,217 +55,237 @@ enum LikeTarget {
   COMMENT
 }
 
-// --- CORE MODELS ---
-
+// -------------------------------------------------------------------
+// 👤 USER MODEL — must align with NextAuth
+// -------------------------------------------------------------------
 model User {
-  id              String           @id @default(uuid())
-  role            Role             @default(USER)
-  isAdmin         Boolean          @default(false)
-  email           String           @unique
-  emailVerified   DateTime?
-  username        String?          @unique
-  name            String?
-  bio             String?
-  profileImage    String?
-  socialLinks     Json? // { twitter: "...", github: "...", linkedin: "..." }
-  subscription    String           @default("FREE")
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id            String    @id @default(cuid()) // ✅ use cuid for compatibility with PrismaAdapter
+  role          String    @default("user")
+  isAdmin       Boolean   @default(false)
+  email         String?   @unique // ✅ must be optional for OAuth-only users
+  emailVerified DateTime?
+  username      String?   @unique
+  name          String?
+  bio           String?
+  image         String? // ✅ keep "image" (NextAuth expects this field)
+  profileImage  String? // optional custom field
+  socialLinks   Json? // { twitter: "...", github: "...", linkedin: "..." }
+  subscription  String    @default("FREE")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // Relations
-  accounts        Account[]
-  sessions        Session[]
-  posts           Post[]
-  comments        Comment[]
-  likes           Like[]
-  bookmarks       Bookmark[]
-  sentFollows     Follow[]         @relation("follower")
-  receivedFollows Follow[]         @relation("following")
-  notifications   Notification[]   @relation("notificationsReceived")
+  accounts  Account[]
+  sessions  Session[]
+  posts     Post[]
+  comments  Comment[]
+  likes     Like[]
+  bookmarks Bookmark[]
+
+  sentFollows       Follow[]       @relation("follower")
+  receivedFollows   Follow[]       @relation("following")
+  notifications     Notification[] @relation("notificationsReceived")
   sentNotifications Notification[] @relation("notificationsSent")
 
   @@index([username])
   @@index([email])
 }
 
+// -------------------------------------------------------------------
+// 📝 POST MODEL
+// -------------------------------------------------------------------
 model Post {
-  id               String         @id @default(uuid())
-  authorId         String
-  title            String
-  slug             String         @unique
-  thumbnailUrl     String?
-  excerpt          String?
-  content          String // Markdown content
-  status           PostStatus     @default(DRAFT)
-  visibility       PostVisibility @default(PUBLIC)
-  isFeatured       Boolean        @default(false)
-  exclusive        Boolean        @default(false)
-  readingTime      Int? // Estimated reading time in minutes
-  publishedAt      DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime         @updatedAt
+  id           String         @id @default(cuid())
+  authorId     String
+  title        String
+  slug         String         @unique
+  thumbnailUrl String?
+  excerpt      String?
+  content      String
+  status       PostStatus     @default(DRAFT)
+  visibility   PostVisibility @default(PUBLIC)
+  isFeatured   Boolean        @default(false)
+  exclusive    Boolean        @default(false)
+  readingTime  Int?
+  publishedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   // Relations
-  author           User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  tags             PostTag[]
-  comments         Comment[]
-  likes            Like[]
-  bookmarks        Bookmark[]
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tags      PostTag[]
+  comments  Comment[]
+  likes     Like[]
+  bookmarks Bookmark[]
 
-  // Counters (denormalized for performance)
-  viewsCount       Int            @default(0)
-  likesCount       Int            @default(0)
-  commentsCount    Int            @default(0)
-  bookmarksCount   Int            @default(0)
+  // Counters
+  viewsCount     Int @default(0)
+  likesCount     Int @default(0)
+  commentsCount  Int @default(0)
+  bookmarksCount Int @default(0)
 
   @@index([slug])
   @@index([authorId])
   @@index([publishedAt])
 }
 
+// -------------------------------------------------------------------
+// 🏷️ TAGS
+// -------------------------------------------------------------------
 model Tag {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  slug        String    @unique
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
   description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  posts       PostTag[]
+  posts PostTag[]
 
   @@index([name])
 }
 
+// -------------------------------------------------------------------
+// 🔗 POST-TAG PIVOT
+// -------------------------------------------------------------------
 model PostTag {
   postId String
   tagId  String
 
-  // Relations
-  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([postId, tagId])
 }
 
+// -------------------------------------------------------------------
+// 💬 COMMENTS
+// -------------------------------------------------------------------
 model Comment {
-  id        String    @id @default(uuid())
+  id        String   @id @default(cuid())
   postId    String
   authorId  String
-  parentId  String? // For nested comments
+  parentId  String?
   content   String
-  isEdited  Boolean   @default(false)
-  isDeleted Boolean   @default(false)
-  reported  Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  isEdited  Boolean  @default(false)
+  isDeleted Boolean  @default(false)
+  reported  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent    Comment?  @relation("commentReplies", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  replies   Comment[] @relation("commentReplies")
-  likes     Like[]
+  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("commentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("commentReplies")
+  likes   Like[]
 
-  // Counters
   likesCount Int @default(0)
 
   @@index([postId])
   @@index([authorId])
 }
 
-// --- INTERACTION MODELS ---
-
+// -------------------------------------------------------------------
+// ❤️ LIKES
+// -------------------------------------------------------------------
 model Like {
-  id        String     @id @default(uuid())
+  id        String     @id @default(cuid())
   userId    String
   target    LikeTarget
   postId    String?
   commentId String?
   createdAt DateTime   @default(now())
 
-  // Relations
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post?      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  comment   Comment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
-  // A user can only like a post/comment once
   @@unique([userId, postId])
   @@unique([userId, commentId])
-
   @@index([postId])
   @@index([commentId])
 }
 
+// -------------------------------------------------------------------
+// 🔖 BOOKMARKS
+// -------------------------------------------------------------------
 model Bookmark {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   userId    String
   postId    String
   createdAt DateTime @default(now())
 
-  // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
   @@index([postId])
 }
 
+// -------------------------------------------------------------------
+// 👥 FOLLOW RELATIONSHIP
+// -------------------------------------------------------------------
 model Follow {
   followerId  String
   followingId String
   createdAt   DateTime @default(now())
 
-  // Relations
   follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
   following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followingId])
 }
 
+// -------------------------------------------------------------------
+// 🔔 NOTIFICATIONS
+// -------------------------------------------------------------------
 model Notification {
-  id          String         @id @default(uuid())
+  id          String           @id @default(cuid())
   recipientId String
   actorId     String
   type        NotificationType
-  entityType  EntityType? // e.g., POST, COMMENT
-  entityId    String?       // e.g., postId, commentId
-  isRead      Boolean       @default(false)
-  createdAt   DateTime      @default(now())
+  entityType  EntityType?
+  entityId    String?
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
 
-  // Relations
-  recipient   User          @relation("notificationsReceived", fields: [recipientId], references: [id], onDelete: Cascade)
-  actor       User          @relation("notificationsSent", fields: [actorId], references: [id], onDelete: Cascade)
+  recipient User @relation("notificationsReceived", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     User @relation("notificationsSent", fields: [actorId], references: [id], onDelete: Cascade)
 
   @@index([recipientId, isRead])
 }
 
+// -------------------------------------------------------------------
+// 📩 CONTACT MESSAGES
+// -------------------------------------------------------------------
 model ContactMessage {
-    id        String   @id @default(uuid())
-    name      String
-    email     String
-    message   String
-    createdAt DateTime @default(now())
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
 }
 
-// --- NEXTAUTH MODELS (for authentication) ---
-
+// -------------------------------------------------------------------
+// 🔐 NEXTAUTH MODELS — must match official adapter schema
+// -------------------------------------------------------------------
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
 
-  // Relation
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -274,8 +296,7 @@ model Session {
   userId       String
   expires      DateTime
 
-  // Relation
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {

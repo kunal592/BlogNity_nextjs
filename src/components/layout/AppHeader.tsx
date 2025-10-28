@@ -1,10 +1,11 @@
-'use client';
+// src/components/layout/AppHeader.tsx
+"use client";
 
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { UserNav } from '@/components/shared/UserNav';
-import NotificationsPopover from '@/components/notifications/NotificationsPopover';
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { UserNav } from "@/components/shared/UserNav";
+import NotificationsPopover from "@/components/notifications/NotificationsPopover";
 
 export default function AppHeader() {
   return (
@@ -12,6 +13,7 @@ export default function AppHeader() {
       <div className="md:hidden">
         <SidebarTrigger />
       </div>
+
       <div className="relative flex-1">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
@@ -20,6 +22,7 @@ export default function AppHeader() {
           className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
         />
       </div>
+
       <div className="flex items-center gap-4">
         <NotificationsPopover />
         <UserNav />
